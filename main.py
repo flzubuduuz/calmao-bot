@@ -13,13 +13,14 @@ json_object = json.load(a_file)
 a_file.close()
 print(json_object)
 
+#Abre el archivo con los nombres y los guarda#
 b_file = open("names.json", "r")
 json_names = json.load(b_file)
 b_file.close()
 print(json_names)
 
 #Embed#
-embed=discord.Embed(title="El comando que has enviado no existe.", description="Aquí hay una lista de comandos disponibles:", color=0xf40101)
+embed=discord.Embed(title="El comando que has enviado no existe.", description="Aquí hay una lista de comandos disponibles (siempre deben ir en minúsculas):", color=0xf40101)
 embed.add_field(name="%calmaobot check @usuario", value="Muestra el puntaje del usuario (si no pones usuario, muestra tu propio puntaje).", inline=False)
 embed.add_field(name="%calmaobot total", value="Muestra el total de calmaos en el server.", inline=False)
 embed.add_field(name="%calmaobot top", value="Muestra las 5 personas más calmadas del server.", inline=False)
@@ -37,8 +38,12 @@ async def on_ready():
 async def on_message(message):
     #Salta mensajes si son del mismo bot#
     if message.author == client.user:
-        print('Bot message, return to top')
-        return
+      return
+
+    #easter egg#
+    if message.content.startswith("%calmaobot check") and len(message.mentions)==1 and message.mentions[0].id==client.user.id:
+      await message.channel.send('Calmao puntos de calmao bot: 2̵̢̗̯̼̝̠̦̹͍̥̪̍̐̓̿̃̒͆̔̎̈͌͌͆͝7̵̘͉̲̬̗̭̓́̽̔̄́1̷̛̘̩̮̤̝̿́͑̄͝8̶̢̦̫̹͈̬́͋͂̔͗̊̉͆̒͑́͘͘͘͠͝2̷̢͈͙̬̜͈̼̤͋̋̃͊̆̌̈́̾̒̆͗̚͝8̶͖̰̣̾̽̃͋͊̿̎͐̕1̴̤̠͎̙̭̉͋͗͛̍͗̈́̕8̸̡̢̦̬̜̗̈́̇̈́̈́̇͊̽͆̋͝͠͠2̶̛͔̓̅̚8̷̧̡̡̧̺̣̤̗͕̬͎̎̊͐̊͑̎͗̌̉̆̍̕̕4̷̛͕̮͓̈́́́̽̂͑5̶̮͔͔̯̲̫̻̻̮͓̳̼̗̙̩̣͚͑̓̀̀͒9̸̨̹̟̘̣͉̺͖̦̥̥̃͛͊̓͗͛͒͂̆͌̏̾͒͂͜͝͠͠0̷͉̹̦͛͌̽́̾͊͒̆̏̍̀̐̄͆ͅ4̵̲̖͇͋͑͜5̶̢̧̩̩̮̯͚͈͎̼̹͎͔͎̓̄͗̽̌̔̿̈̀̑̅̀͐́̿͝͝')
+      return
 
     #calmaobot check#
     if message.content.startswith("%calmaobot check"):
@@ -46,18 +51,16 @@ async def on_message(message):
         if str(message.mentions[0].id) in json_object:
           await message.channel.send('Calmao puntos de ' + message.mentions[0].name + ': ' + str(json_object[str(message.mentions[0].id)]))
           return
-        else:
-          await message.channel.send('Calmao puntos de ' + message.mentions[0].name + ': 0 \n:(')
-          return
+        await message.channel.send('Calmao puntos de ' + message.mentions[0].name + ': 0 \n:(')
+        return
       if len(message.mentions) > 1:
         await message.channel.send(':no_entry: **Solo puedes mencionar a una persona por mensaje.**')
         return
-      if len(message.mentions) == 0:
-        if str(message.author.id) in json_object:
-          await message.channel.send('Calmao puntos de ' + message.author.name + ': ' + str(json_object[str(message.author.id)]))
-        else:
-          await message.channel.send('Calmao puntos de ' + message.author.name + ': 0 \n:(')
+      if str(message.author.id) in json_object:
+        await message.channel.send('Calmao puntos de ' + message.author.name + ': ' + str(json_object[str(message.author.id)]))
         return
+      await message.channel.send('Calmao puntos de ' + message.author.name + ': 0 \n:(')
+      return
     
     #calmaobot total#
     if message.content.startswith("%calmaobot total"):
@@ -72,17 +75,12 @@ async def on_message(message):
 
     #Activa mensaje de ayuda#
     if message.content.startswith('%calmaobot'):
-        channel = message.channel
-        await channel.send(embed=embed)
-        print('Help message sent, return to top')
-        return
+      channel = message.channel
+      await channel.send(embed=embed)
+      return
 
     #Salta el mensaje si habla de calmaobot#
-    if "calmaobot" in message.content.lower():
-      print('Self-reference, return to top')
-      return
-    if "calmao bot" in message.content.lower():
-      print('Self-reference, return to top')
+    if "calmaobot" or "calmao bot" in message.content.lower():
       return
 
     #Si encuentra un calmao#
@@ -90,10 +88,11 @@ async def on_message(message):
       #Agrega 1 al contador total#
       json_object["ccounter"] = json_object["ccounter"]+1
 
+      #Actualiza los nombres y counters individuales#
       if str(message.author.id) in json_object:
         json_object[str(message.author.id)] = json_object[str(message.author.id)]+1
-      else:
-        json_object[str(message.author.id)] = 1
+        return
+      json_object[str(message.author.id)] = 1
 
       json_names[str(message.author.id)] = str(message.author.name)
 
@@ -104,11 +103,6 @@ async def on_message(message):
       b_file = open("names.json", "w")
       json.dump(json_names, b_file)
       b_file.close()
-      
-      print('Added 1 to counters, return to top')
-    
-    else:
-      print('Message not important, return to top')
         
 #Pingea al bot#
 keep_alive()
