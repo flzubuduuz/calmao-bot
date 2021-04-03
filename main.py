@@ -80,19 +80,20 @@ async def on_message(message):
       return
 
     #Salta el mensaje si habla de calmaobot#
-    if "calmaobot" or "calmao bot" in message.content.lower():
+    if "calmaobot" in message.content.lower() or "calmao bot" in message.content.lower():
       return
 
     #Si encuentra un calmao#
     if "calmao" in message.content.lower():
+
       #Agrega 1 al contador total#
       json_object["ccounter"] = json_object["ccounter"]+1
 
       #Actualiza los nombres y counters individuales#
       if str(message.author.id) in json_object:
         json_object[str(message.author.id)] = json_object[str(message.author.id)]+1
-        return
-      json_object[str(message.author.id)] = 1
+      else:
+        json_object[str(message.author.id)] = 1
 
       json_names[str(message.author.id)] = str(message.author.name)
 
