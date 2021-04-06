@@ -4,8 +4,6 @@ import json
 from keep_alive import keep_alive
 import discord
 client = discord.Client()
-intents = discord.Intents.default()
-intents.members = True
 
 #Abre el archivo con la cuenta actual y lo guarda#
 a_file = open("count.json", "r")
