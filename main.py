@@ -1,110 +1,189 @@
-#Libraries y weas pa que funcione el bot#
+#1. ESENCIALES
+#libraries y weas para que funcione el bot
+import discord
 import os
 import json
+from discord.ext import commands
 from keep_alive import keep_alive
-import discord
-client = discord.Client()
+bot = commands.Bot(command_prefix=['%calmaobot ','%cb '])
+bot.remove_command('help')
 
-#Abre el archivo con la cuenta actual y lo guarda#
-a_file = open("count.json", "r")
-json_object = json.load(a_file)
-a_file.close()
-print(json_object)
 
-#Abre el archivo con los nombres y los guarda#
-b_file = open("names.json", "r")
-json_names = json.load(b_file)
-b_file.close()
-print(json_names)
+#2. CARGAR .JSONS
+#count
+count_file = open("count.json", "r")
+count = json.load(count_file)
+count_file.close()
 
-#Embed#
-embed=discord.Embed(title="El comando que has enviado no existe.", description="Aquí hay una lista de comandos disponibles (siempre deben ir en minúsculas):", color=0xf40101)
-embed.add_field(name="%calmaobot check @usuario", value="Muestra el puntaje del usuario (si no pones usuario, muestra tu propio puntaje).", inline=False)
-embed.add_field(name="%calmaobot total", value="Muestra el total de calmaos en el server.", inline=False)
-embed.add_field(name="%calmaobot top", value="Muestra las 5 personas más calmadas del server.", inline=False)
-embed.add_field(name="¿Qué es este bot?", value='Gracias por preguntar! calmao bot cuenta la cantidad de veces que cada usuario ha dicho "calmao" en el server. Intenta no hacer spam de la palabra, para poder ver quién es, verdaderamente, el mas calmao del server.', inline=False)
-embed.add_field(name="\u200B", value="by flzubuduuz. [Repositorio.](https://github.com/flzubuduuz/calmao-bot)", inline=False)
+#names
+names_file = open("names.json", "r")
+names = json.load(names_file)
+names_file.close()
 
-#Pone el status y conecta el bot#
-@client.event
-async def on_ready():
-    await client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name='%calmaobot'))
-    print('{0.user} is up and running'.format(client))
 
-#Para cada mensaje del server se activa esto#
-@client.event
-async def on_message(message):
-    #Salta mensajes si son del mismo bot#
-    if message.author == client.user:
-      return
+#3. DEFINICIONES
+#numbers
+numbers = {
+  0: ":zero:",
+  1: ":one:",
+  2: ":two:",
+  3: ":three:",
+  4: ":four:",
+  5: ":five:",
+  6: ":six:",
+  7: ":seven:",
+  8: ":eight:",
+  9: ":nine:"
+}
 
-    #easter egg#
-    if message.content.startswith("%calmaobot check") and len(message.mentions)==1 and message.mentions[0].id==client.user.id:
-      await message.channel.send('Calmao puntos de calmao bot: 2̵̢̗̯̼̝̠̦̹͍̥̪̍̐̓̿̃̒͆̔̎̈͌͌͆͝7̵̘͉̲̬̗̭̓́̽̔̄́1̷̛̘̩̮̤̝̿́͑̄͝8̶̢̦̫̹͈̬́͋͂̔͗̊̉͆̒͑́͘͘͘͠͝2̷̢͈͙̬̜͈̼̤͋̋̃͊̆̌̈́̾̒̆͗̚͝8̶͖̰̣̾̽̃͋͊̿̎͐̕1̴̤̠͎̙̭̉͋͗͛̍͗̈́̕8̸̡̢̦̬̜̗̈́̇̈́̈́̇͊̽͆̋͝͠͠2̶̛͔̓̅̚8̷̧̡̡̧̺̣̤̗͕̬͎̎̊͐̊͑̎͗̌̉̆̍̕̕4̷̛͕̮͓̈́́́̽̂͑5̶̮͔͔̯̲̫̻̻̮͓̳̼̗̙̩̣͚͑̓̀̀͒9̸̨̹̟̘̣͉̺͖̦̥̥̃͛͊̓͗͛͒͂̆͌̏̾͒͂͜͝͠͠0̷͉̹̦͛͌̽́̾͊͒̆̏̍̀̐̄͆ͅ4̵̲̖͇͋͑͜5̶̢̧̩̩̮̯͚͈͎̼̹͎͔͎̓̄͗̽̌̔̿̈̀̑̅̀͐́̿͝͝')
-      return
+#first
+def first(x):
+  sorted_count = sorted(count.items(), key=lambda z: z[1], reverse=True)
+  t = ""
 
-    #calmaobot check#
-    if message.content.startswith("%calmaobot check"):
-      if len(message.mentions) == 1:
-        if str(message.mentions[0].id) in json_object:
-          await message.channel.send('Calmao puntos de ' + message.mentions[0].name + ': ' + str(json_object[str(message.mentions[0].id)]))
-          return
-        await message.channel.send('Calmao puntos de ' + message.mentions[0].name + ': 0 \n:(')
-        return
-      if len(message.mentions) > 1:
-        await message.channel.send(':no_entry: **Solo puedes mencionar a una persona por mensaje.**')
-        return
-      if str(message.author.id) in json_object:
-        await message.channel.send('Calmao puntos de ' + message.author.name + ': ' + str(json_object[str(message.author.id)]))
-        return
-      await message.channel.send('Calmao puntos de ' + message.author.name + ': 0 \n:(')
-      return
+  if x < 10:
+    for y in range(1,x+1):
+      t += numbers[y] + ' ' + names[sorted_count[y][0]] + ': ' + str(sorted_count[y][1]) + '\n'
+
+  if x >= 10:
+    for y in range(1,10):
+      t += ':zero:' + numbers[y] + ' ' + names[sorted_count[y][0]] + ': ' + str(sorted_count[y][1]) + '\n'
     
-    #calmaobot total#
-    if message.content.startswith("%calmaobot total"):
-      await message.channel.send('**TOTAL DE CALMAO PUNTOS DEL SERVER:  **' + str(json_object["ccounter"]))
-      return
+    for y in range(10,x+1):
+      t += numbers[int(str(y)[0])] + numbers[int(str(y)[1])] + ' ' + names[sorted_count[y][0]] + ': ' + str(sorted_count[y][1]) + '\n'
 
-    #calmaobot top#
-    if message.content.startswith("%calmaobot top"):
-      sorted_object = sorted(json_object.items(), key=lambda x: x[1], reverse=True)
-      await message.channel.send(':trophy: **TOP 5 PERSONAS MAS CALMADAS DEL SERVER** :trophy: \n\n:one: ' + str(json_names[sorted_object[1][0]]) + ': ' + str(sorted_object[1][1]) + '\n:two: '  + str(json_names[sorted_object[2][0]]) + ': ' + str(sorted_object[2][1]) + '\n:three: '  + str(json_names[sorted_object[3][0]]) + ': ' + str(sorted_object[3][1]) + '\n:four: '  + str(json_names[sorted_object[4][0]]) + ': ' + str(sorted_object[4][1]) + '\n:five: '  + str(json_names[sorted_object[5][0]]) + ': ' + str(sorted_object[5][1]))
-      return
+  return t
 
-    #Activa mensaje de ayuda#
-    if message.content.startswith('%calmaobot'):
-      channel = message.channel
-      await channel.send(embed=embed)
-      return
+#embeds
+help_embed=discord.Embed(title="Hola! Aquí hay una lista de comandos disponibles:", color=0xf40101)
+help_embed.add_field(name="%calmaobot check @usuario", value="Muestra el puntaje del usuario (si no pones usuario, muestra tu propio puntaje).", inline=False)
+help_embed.add_field(name="%calmaobot total", value="Muestra el total de calmaos en el server.", inline=False)
+help_embed.add_field(name="%calmaobot top", value="Muestra las 5 personas más calmadas del server.", inline=False)
+help_embed.add_field(name="%calmaobot all", value="Muestra todas las personas calmadas del server, hasta un máximo de 50.", inline=False)
+help_embed.add_field(name="%calmaobot help", value="Muestra este mensaje de ayuda!", inline=False)
+help_embed.add_field(name="\u200B", value="PD: puedes usar **%cb** en vez de **%calmaobot** si así lo prefieres.", inline=False)
+help_embed.add_field(name="\u200B", value="\u200B", inline=False)
+help_embed.add_field(name="¿Qué es este bot?", value='Gracias por preguntar! calmao bot cuenta la cantidad de veces que cada usuario ha dicho "calmao" en el server. Intenta no hacer spam de la palabra, para poder ver quién es, verdaderamente, el más calmao del server.', inline=False)
+help_embed.add_field(name="\u200B", value="by flzubuduuz. [Repositorio.](https://github.com/flzubuduuz/calmao-bot)", inline=False)
 
-    #Salta el mensaje si habla de calmaobot#
-    if "calmaobot" in message.content.lower() or "calmao bot" in message.content.lower():
-      return
+error_embed=discord.Embed(title="El comando que has escrito no existe :(", description="Utiliza **%calmaobot help** para mostrar los comandos disponibles.", color=0xf40101)
 
-    #Si encuentra un calmao#
-    if "calmao" in message.content.lower():
 
-      #Agrega 1 al contador total#
-      json_object["ccounter"] = json_object["ccounter"]+1
+#4. INICIO
+#pone el status y conecta el bot
+@bot.event
+async def on_ready():
+  await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name='%calmaobot help'))
+  print('{0.user} is up and running'.format(bot))
 
-      #Actualiza los nombres y counters individuales#
-      if str(message.author.id) in json_object:
-        json_object[str(message.author.id)] = json_object[str(message.author.id)]+1
-      else:
-        json_object[str(message.author.id)] = 1
 
-      json_names[str(message.author.id)] = str(message.author.name)
+#5. ON MESSAGE
+#para sumar puntos si hay calmaos
+@bot.event
+async def on_message(message):
+  await bot.process_commands(message)
+  
+  #msgcount: cantidad de "calmaos" descontando menciones al bot
+  
+  msgcount = str(message.content).lower().count("calmao") - str(message.content).lower().count("calmaobot") - str(message.content).lower().count("calmao bot") - str(message.content).lower().count("calmao-bot")
 
-      a_file = open("count.json", "w")
-      json.dump(json_object, a_file)
-      a_file.close()
+  if msgcount > 0 and message.author.bot==False:
+    
+    #suma puntos al counter total
+    if not "ccounter" in count: count["ccounter"]=0
+    count["ccounter"] = count["ccounter"] + msgcount
 
-      b_file = open("names.json", "w")
-      json.dump(json_names, b_file)
-      b_file.close()
-        
-#Pingea al bot#
+    #suma puntos al usuario
+    if str(message.author.id) in count:
+      count[str(message.author.id)] = count[str(message.author.id)] + msgcount
+    else:
+      count[str(message.author.id)] = msgcount
+
+    #agrega/cambia nombre de usuario
+    names[str(message.author.id)] = str(message.author.name)
+
+    #modifica los .json
+    count_file = open("count.json", "w")
+    json.dump(count, count_file)
+    count_file.close()
+
+    names_file = open("names.json", "w")
+    json.dump(names, names_file)
+    names_file.close()
+  
+    return
+
+
+#6. COMANDOS
+#check
+@bot.command()
+async def check(ctx, users: commands.Greedy[discord.User]):
+
+  userlist = []
+  for user in users:
+    userlist.append(user.id)
+    userlist.append(user.name)
+  
+  #si hay mas de una mención
+  if len(userlist) > 2:
+    await ctx.send(':no_entry: **Solo puedes mencionar a una persona por mensaje.**')
+    return
+
+  #si no hay menciones, agrega autor a la lista
+  if not userlist:
+    userlist.append(ctx.message.author.id)
+    userlist.append(ctx.message.author.name)
+
+  #easter egg
+  if userlist[0] == bot.user.id:
+    await ctx.send('Calmao puntos de calmao bot: 2̵̢̗̯̼̝̠̦̹͍̥̪̍̐̓̿̃̒͆̔̎̈͌͌͆͝7̵̘͉̲̬̗̭̓́̽̔̄́1̷̛̘̩̮̤̝̿́͑̄͝8̶̢̦̫̹͈̬́͋͂̔͗̊̉͆̒͑́͘͘͘͠͝2̷̢͈͙̬̜͈̼̤͋̋̃͊̆̌̈́̾̒̆͗̚͝8̶͖̰̣̾̽̃͋͊̿̎͐̕1̴̤̠͎̙̭̉͋͗͛̍͗̈́̕8̸̡̢̦̬̜̗̈́̇̈́̈́̇͊̽͆̋͝͠͠2̶̛͔̓̅̚8̷̧̡̡̧̺̣̤̗͕̬͎̎̊͐̊͑̎͗̌̉̆̍̕̕4̷̛͕̮͓̈́́́̽̂͑5̶̮͔͔̯̲̫̻̻̮͓̳̼̗̙̩̣͚͑̓̀̀͒9̸̨̹̟̘̣͉̺͖̦̥̥̃͛͊̓͗͛͒͂̆͌̏̾͒͂͜͝͠͠0̷͉̹̦͛͌̽́̾͊͒̆̏̍̀̐̄͆ͅ4̵̲̖͇͋͑͜5̶̢̧̩̩̮̯͚͈͎̼̹͎͔͎̓̄͗̽̌̔̿̈̀̑̅̀͐́̿͝͝')
+    return
+
+  #si la persona tiene puntos
+  if str(userlist[0]) in count:
+    await ctx.send('Calmao puntos de ' + userlist[1] + ': ' + str(count[str(userlist[0])]))
+    return
+
+  #si no tiene puntos
+  await ctx.send('Calmao puntos de ' + userlist[1] + ': 0 \n:(')
+
+#total
+@bot.command()
+async def total(ctx):
+  await ctx.send('**TOTAL DE CALMAO PUNTOS DEL SERVER:  **' + str(count["ccounter"]))
+
+#top
+@bot.command()
+async def top(ctx):
+  if len(names) < 5:
+    await ctx.send(':no_entry: Todavía no hay 5 personas calmadas como para hacer el top, pero puedes usar **%calmaobot all** para mostrar todas las personas calmadas que hay hasta ahora.')
+    return
+  await ctx.send(':trophy: **TOP 5 PERSONAS MAS CALMADAS DEL SERVER** :trophy: \n\n' + first(5))
+
+#all
+@bot.command()
+async def all(ctx):
+  if len(names) > 50:
+    await ctx.send('_Hay ' + str(len(names)) + ' personas calmadas, por lo que solo se muestran las primeras 50._ \n\n:loudspeaker: **TODAS LAS PERSONAS CALMADAS DEL SERVER** :loudspeaker: \n\n' + first(50))
+    return
+  await ctx.send(':loudspeaker: **TODAS LAS PERSONAS CALMADAS DEL SERVER** :loudspeaker: \n\n' + first(len(names)))
+
+#help
+@bot.command()
+async def help(ctx):
+  await ctx.send(embed=help_embed)
+
+#error
+@bot.event
+async def on_command_error(ctx, error):
+  print(error)
+  if isinstance(error, commands.CommandNotFound):
+    await ctx.send(embed=error_embed)
+
+
+#7. FIN
+#pingea al bot
 keep_alive()
 
-#Token para identificar al bot#
-client.run(os.getenv('TOKEN'))
+#token
+bot.run(os.getenv('TOKEN'))
