@@ -24,33 +24,34 @@ names_file.close()
 #3. DEFINICIONES
 #numbers
 numbers = {
-  0: ":zero:",
-  1: ":one:",
-  2: ":two:",
-  3: ":three:",
-  4: ":four:",
-  5: ":five:",
-  6: ":six:",
-  7: ":seven:",
-  8: ":eight:",
-  9: ":nine:"
+  "0": ":zero:",
+  "1": ":one:",
+  "2": ":two:",
+  "3": ":three:",
+  "4": ":four:",
+  "5": ":five:",
+  "6": ":six:",
+  "7": ":seven:",
+  "8": ":eight:",
+  "9": ":nine:"
 }
+
+#digits
+def digits(x):
+  return str(x).zfill(2)
 
 #first
 def first(x):
   sorted_count = sorted(count.items(), key=lambda z: z[1], reverse=True)
   t = ""
-
+  
   if x < 10:
     for y in range(1,x+1):
-      t += numbers[y] + ' ' + names[sorted_count[y][0]] + ': ' + str(sorted_count[y][1]) + '\n'
+      t += numbers[str(y)] + ' ' + names[sorted_count[y][0]] + ': ' + str(sorted_count[y][1]) + '\n'
 
-  if x >= 10:
-    for y in range(1,10):
-      t += ':zero:' + numbers[y] + ' ' + names[sorted_count[y][0]] + ': ' + str(sorted_count[y][1]) + '\n'
-    
-    for y in range(10,x+1):
-      t += numbers[int(str(y)[0])] + numbers[int(str(y)[1])] + ' ' + names[sorted_count[y][0]] + ': ' + str(sorted_count[y][1]) + '\n'
+  else:
+    for y in range(1,x+1):
+      t += numbers[digits(y)[0]] + numbers[digits(y)[1]] + ' ' + names[sorted_count[y][0]] + ': ' + str(sorted_count[y][1]) + '\n'
 
   return t
 
@@ -66,7 +67,7 @@ help_embed.add_field(name="\u200B", value="\u200B", inline=False)
 help_embed.add_field(name="¿Qué es este bot?", value='Gracias por preguntar! calmao bot cuenta la cantidad de veces que cada usuario ha dicho "calmao" en el server. Intenta no hacer spam de la palabra, para poder ver quién es, verdaderamente, el más calmao del server.', inline=False)
 help_embed.add_field(name="\u200B", value="by flzubuduuz. [Repositorio.](https://github.com/flzubuduuz/calmao-bot)", inline=False)
 
-error_embed=discord.Embed(title="El comando que has escrito no existe :(", description="Utiliza **%calmaobot help** para mostrar los comandos disponibles.", color=0xf40101)
+error_embed=discord.Embed(title="El comando que has escrito no existe :(", description="Utiliza **%calmaobot help** para mostrar los comandos disponibles.\n_Recuerda también siempre escribir los comandos en minúsculas._", color=0xf40101)
 
 
 #4. INICIO
@@ -100,17 +101,18 @@ async def on_message(message):
       count[str(message.author.id)] = msgcount
 
     #agrega/cambia nombre de usuario
-    names[str(message.author.id)] = str(message.author.name)
+    if not names[str(message.author.id)] == str(message.author.name):
+      names[str(message.author.id)] = str(message.author.name)
 
-    #modifica los .json
+      #modifica los .json
+      names_file = open("names.json", "w")
+      json.dump(names, names_file)
+      names_file.close()
+
     count_file = open("count.json", "w")
     json.dump(count, count_file)
     count_file.close()
 
-    names_file = open("names.json", "w")
-    json.dump(names, names_file)
-    names_file.close()
-  
     return
 
 
