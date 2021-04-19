@@ -101,7 +101,7 @@ async def on_message(message):
       count[str(message.author.id)] = msgcount
 
     #agrega/cambia nombre de usuario
-    if not names[str(message.author.id)] == str(message.author.name):
+    if not names[str(message.author.id)] == str(message.author.name) or not str(message.author.id) in names:
       names[str(message.author.id)] = str(message.author.name)
 
       #modifica los .json
