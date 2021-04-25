@@ -7,11 +7,13 @@ from dateutil import parser
 from keep_alive import keep_alive
 
 import discord
+import typing
 from discord.ext import commands
 from discord.ext.commands import has_permissions, MissingPermissions
 intents = discord.Intents.default()
 intents.messages = True
-bot = commands.Bot(command_prefix=['%calmaobot ','%cb '])
+intents.members = True
+bot = commands.Bot(command_prefix = ['%calmaobot ','%cb '], intents = intents)
 bot.remove_command('help')
 
 
@@ -21,21 +23,20 @@ bot.remove_command('help')
 #2. DEFINICIONES
 
 #wordcount
-def wordcount(message, count, words, subtract):
+def wordcount(message, words, subtract):
 
   wordcount = 0
   if subtract == True:
     for word in words:
-      wordcount -= str(message.content).lower().count(word)
+      wordcount -= str(message.content).lower().count(word.lower())
   else:
     for word in words:
-      wordcount += str(message.content).lower().count(word)
+      wordcount += str(message.content).lower().count(word.lower())
   return wordcount
 
 #msgcount
-def msgcount(message, count, words, subtract = False):
+def msgcount(message, count, names, words, subtract=False):
   userid = str(message.author.id)
-  serverid = str(message.guild.id)
 
   if message.author.bot == True:
     return
@@ -43,15 +44,15 @@ def msgcount(message, count, words, subtract = False):
   if message.content.startswith('%calmaobot') or message.content.startswith('%cb'):
     return
   
-  msgcount = wordcount(message, count, words, subtract)
+  msgcount = wordcount(message, words, subtract)
   if msgcount > 0 or msgcount < 0:
       
-    if userid in db[serverid]["counts"][count]:
-      db[serverid]["counts"][count][userid] += msgcount
-    else: db[serverid]["counts"][count][userid] = msgcount
+    if userid in count:
+      count[userid] += msgcount
+    else: count[userid] = msgcount
         
-    if not userid in db[serverid]["names"] or db[serverid]["names"][userid] != message.author.name:
-      db[serverid]["names"][userid] = message.author.name
+    if not userid in names or names[userid] != message.author.name:
+      names[userid] = message.author.name
 
 #parse
 def parse(str):
@@ -124,7 +125,7 @@ def total(ctx, count):
 @bot.event
 async def on_ready():
   await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name='%calmaobot help'))
-  print('{0.user} is up and running'.format(bot))
+  print(datetime.now().strftime("%d/%b/%Y %H:%M:%S") + ' - {0.user} is up and running'.format(bot))
 
 
 
@@ -137,15 +138,35 @@ async def on_message(message):
 
   if str(message.guild.id) in db:
     for count in db[str(message.guild.id)]["counts"]:
-      msgcount(message, count, db[str(message.guild.id)]["words"][count])
+      msgcount(message = message,
+      count = db[str(message.guild.id)]["counts"][count],
+      names = db[str(message.guild.id)]["names"],
+      words = db[str(message.guild.id)]["words"][count])
 
 @bot.event
 async def on_message_delete(message):
-  await bot.process_commands(message)
 
   if str(message.guild.id) in db:
     for count in db[str(message.guild.id)]["counts"]:
-      msgcount(message, count, db[str(message.guild.id)]["words"][count], subtract = True)
+      msgcount(message = message,
+      count = db[str(message.guild.id)]["counts"][count],
+      names = db[str(message.guild.id)]["names"],
+      words = db[str(message.guild.id)]["words"][count], subtract = True)
+
+@bot.event
+async def on_message_edit(before, message):
+
+  if str(message.guild.id) in db:
+    for count in db[str(message.guild.id)]["counts"]:
+      msgcount(message = before,
+      count = db[str(message.guild.id)]["counts"][count],
+      names = db[str(message.guild.id)]["names"],
+      words = db[str(message.guild.id)]["words"][count],
+      subtract = True)
+      msgcount(message = message,
+      count = db[str(message.guild.id)]["counts"][count],
+      names = db[str(message.guild.id)]["names"],
+      words = db[str(message.guild.id)]["words"][count])
 
 
 
@@ -207,6 +228,8 @@ async def create(ctx, name: str, date: str, *terms):
 
   if date != "none":
     await ctx.send(embed = readinghistory_embed)
+    countcache = {}
+    namecache = {}
     for channel in ctx.guild.text_channels:
       print("STARTING " + channel.name)
       try: messages = await channel.history(limit = None, after = date).flatten()
@@ -215,8 +238,13 @@ async def create(ctx, name: str, date: str, *terms):
         print("RETRIEVED " + channel.name)
         for message in messages:
           print(message.content)
-          msgcount(message, name, list(terms))
+          msgcount(message = message,
+          count = countcache,
+          names = namecache,
+          words = list(terms))
         print("FINISHED " + channel.name)
+    db[str(ctx.guild.id)]["counts"][name] = countcache
+    db[str(ctx.guild.id)]["names"].update(namecache)
 
   await ctx.send(embed = done_embed)
 
@@ -253,6 +281,63 @@ async def delete(ctx, name: str):
   deletedone_embed = discord.Embed(title="Todo listo!", description="El contador **" + name + "** ha sido eliminado.", color=0xff0000)
 
   await ctx.send(embed = deletedone_embed)
+
+#%cb prune
+@bot.command()
+@has_permissions(manage_messages=True)
+async def prune(ctx, name: typing.Optional[str] = ""):
+   
+  if name == "":
+    prunecounts = db[str(ctx.guild.id)]["counts"].keys()
+    countername = "de **todos los contadores**"
+  else:
+    if await countercheck(ctx, name) == False:
+      return
+    prunecounts = [name]
+    countername = "del contador **" + name + "**"
+    
+  prunelist = []
+  pruneusers = []
+  memberlist = []
+  async for member in ctx.guild.fetch_members():
+    memberlist.append(str(member.id))
+    
+  for count in prunecounts:
+    for userid in db[str(ctx.guild.id)]["counts"][count]:
+      if not userid in memberlist:
+        pruneusers.append((userid, count))
+        prunelist.append(db[str(ctx.guild.id)]["names"][userid] + " (ID: " + userid + ")")
+
+  if pruneusers == []:
+    await ctx.send(embed = noprune_embed)
+    return
+
+  prunesure_embed = discord.Embed(title="Estás a punto de eliminar a usuarios " + countername + ".", description="Serán eliminados los siguientes usuarios que actualmente no son parte del servidor:\n\n- " + "\n- ".join(prunelist) + "\n\nSi estás seguro, reacciona con un 👍 para eliminar a los usuarios. **Recuerda que esta acción no se puede deshacer!**\n_Este comando expirará en 30 segundos._", color=0xff0000)
+
+  suremsg = await ctx.send(embed = prunesure_embed)
+  suremsg
+  await suremsg.add_reaction('👍')
+
+  def check(reaction, user):
+    return user == ctx.message.author and str(reaction.emoji) == '👍'
+
+  try:
+    reaction, user = await bot.wait_for('reaction_add', timeout=30.0, check=check)
+  except asyncio.TimeoutError:
+    await ctx.send("⏱ **El comando ha expirado.**", reference = suremsg)
+    return
+  else: pass
+
+  prunedone_embed = discord.Embed(title="Todo listo!", description="Los usuarios indicados han sido eliminados de " + countername + ".", color=0xff0000)
+
+  await ctx.send(embed = prunedone_embed)
+
+  for tuple in pruneusers:
+    del db[str(ctx.guild.id)]["counts"][tuple[1]][tuple[0]]
+    for count in db[str(ctx.guild.id)]["counts"]:
+      if tuple[0] in db[str(ctx.guild.id)]["counts"][count]:
+        return
+    del db[str(ctx.guild.id)]["names"][tuple[0]]
 
 #%cb check
 @bot.command(name="check")
@@ -299,7 +384,7 @@ async def _all(ctx, count: str):
   if n > 50: footnote = "_Hay más de 50 usuarios con puntaje, por lo que la lista solo muestra a los primeros 50._\n\n"
   else: footnote = ""
 
-  all_embed = discord.Embed(title="📣 TODOS LOS USUARIOS CON " + count.upper() + " PUNTOS DEL SERVER 📣", description=footnote + first(ctx, count, n), color=0xff0000)
+  all_embed = discord.Embed(title="📢 TODOS LOS USUARIOS CON " + count.upper() + " PUNTOS DEL SERVER 📢", description=footnote + first(ctx, count, n), color=0xff0000)
 
   await ctx.send(embed = all_embed)
 
@@ -380,6 +465,8 @@ parsingerror_embed = discord.Embed(title="Hubo un error procesando la fecha escr
 
 readinghistory_embed = discord.Embed(title="Leyendo la historia de mensajes...", description="El contador está siendo actualizado. Esto podría tomar varios minutos (dependiendo de la cantidad de mensajes que tenga que leer), por lo que se recomienda dejar al bot tranquilo hasta que indique que haya terminado. Puede que algunos mensajes enviados en este período no sean contados adecuadamente.", color=0xff0000)
 
+noprune_embed = discord.Embed(title="No hay ningún usuario para eliminar!", description="Quizás haya alguien a quien quieras kickear...", color=0xff0000)
+
 toomanyusers_embed = discord.Embed(title="🚫 No puedes etiquetar a más de un usuario!", color=0xff0000)
 
 nocommand_embed = discord.Embed(title="El comando que has escrito no existe:(", description="Usa **%calmaobot help** para ver la lista de comandos disponibles.", color=0xff0000)
@@ -403,6 +490,7 @@ help_embed.add_field(name="\u200B", value="by flzubuduuz. [Repositorio.](https:/
 admin_embed = discord.Embed(title="Hola! Aquí hay una lista de comandos para administrar los contadores:", color=0xf40101)
 admin_embed.add_field(name='%calmaobot create _nombre_ _fecha_ "frase1" "frase2" ...', value="Crea un contador con las siguientes características:\n_-  Nombre:_ es fuertemente recomendado que sea **una** sola palabra y que esté en **minúsculas**, para que sea más fácil referirse al contador en los comandos.\n_-  Fecha:_ la fecha a partir de la cual el contador empezará a leer mensajes. Debe ser escrita en formato **_dd/mm/yyyy_**. Escribe **_all_** si quieres que cuente todos los mensajes de la historia del server, y **_none_** si quieres que comience a contar en el momento de la creación del bot.\n_-  Frases:_ las palabras o frases que va a contar el bot, no son case-sensitive. Deben ir entre comillas y separadas por espacios.", inline=False)
 admin_embed.add_field(name="%calmaobot delete _contador_", value="Elimina permanentemente el contador con el nombre ingresado.", inline=False)
+admin_embed.add_field(name="%calmaobot prune _contador_", value="Elimina permanentemente del contador a **todos** los usuarios que ya no sean miembros del server. Si no ingresas ningún contador, eliminará a los no-miembros de **todos** los contadores.", inline=False)
 admin_embed.add_field(name="%calmaobot admin", value="Muestra este mensaje de ayuda!", inline=False)
 admin_embed.add_field(name="\u200B", value="PD: puedes usar **%cb** en vez de **%calmaobot** si así lo prefieres.", inline=False)
 
