@@ -79,16 +79,16 @@ async def check(ctx, count, user):
 
 #numbers
 numbers = {
-  "0": ":zero:",
-  "1": ":one:",
-  "2": ":two:",
-  "3": ":three:",
-  "4": ":four:",
-  "5": ":five:",
-  "6": ":six:",
-  "7": ":seven:",
-  "8": ":eight:",
-  "9": ":nine:"
+  "0": "0️⃣",
+  "1": "1️⃣",
+  "2": "2️⃣",
+  "3": "3️⃣",
+  "4": "4️⃣",
+  "5": "5️⃣",
+  "6": "6️⃣",
+  "7": "7️⃣",
+  "8": "8️⃣",
+  "9": "9️⃣"
 }
 
 #digits
@@ -297,7 +297,10 @@ async def prune(ctx, name: typing.Optional[str] = ""):
     countername = "del contador **" + name + "**"
     
   prunelist = []
-  pruneusers = []
+
+  pruneids = []
+  prunetuples = []
+
   memberlist = []
   async for member in ctx.guild.fetch_members():
     memberlist.append(str(member.id))
@@ -305,14 +308,23 @@ async def prune(ctx, name: typing.Optional[str] = ""):
   for count in prunecounts:
     for userid in db[str(ctx.guild.id)]["counts"][count]:
       if not userid in memberlist:
-        pruneusers.append((userid, count))
-        prunelist.append(db[str(ctx.guild.id)]["names"][userid] + " (ID: " + userid + ")")
+        prunetuples.append((userid, count))
+        if not userid in pruneids:
+          pruneids.append(userid)
+          if len(pruneids) <= 30:
+            prunelist.append(db[str(ctx.guild.id)]["names"][userid] + " (ID: " + userid + ")")
 
-  if pruneusers == []:
+  if prunetuples == []:
     await ctx.send(embed = noprune_embed)
     return
+  
+  if len(pruneids) > 30:
+    footnote = "_Se van a eliminar a " + str(len(pruneids)) + " usuarios, por lo que la lista solo muestra a los primeros 30._\n\n"
+  else: footnote = ""
 
-  prunesure_embed = discord.Embed(title="Estás a punto de eliminar a usuarios " + countername + ".", description="Serán eliminados los siguientes usuarios que actualmente no son parte del servidor:\n\n- " + "\n- ".join(prunelist) + "\n\nSi estás seguro, reacciona con un 👍 para eliminar a los usuarios. **Recuerda que esta acción no se puede deshacer!**\n_Este comando expirará en 30 segundos._", color=0xff0000)
+  print(str(prunetuples))
+
+  prunesure_embed = discord.Embed(title="Estás a punto de eliminar a usuarios " + countername + ".", description="Serán eliminados los siguientes usuarios que actualmente no son parte del servidor:\n\n- " + footnote + "\n- ".join(prunelist) + "\n\nSi estás seguro, reacciona con un 👍 para eliminar a los usuarios. **Recuerda que esta acción no se puede deshacer!**\n_Este comando expirará en 30 segundos._", color=0xff0000)
 
   suremsg = await ctx.send(embed = prunesure_embed)
   suremsg
@@ -332,12 +344,12 @@ async def prune(ctx, name: typing.Optional[str] = ""):
 
   await ctx.send(embed = prunedone_embed)
 
-  for tuple in pruneusers:
+  for tuple in prunetuples:
     del db[str(ctx.guild.id)]["counts"][tuple[1]][tuple[0]]
     for count in db[str(ctx.guild.id)]["counts"]:
       if tuple[0] in db[str(ctx.guild.id)]["counts"][count]:
-        return
-    del db[str(ctx.guild.id)]["names"][tuple[0]]
+        break
+    if tuple[0] in db[str(ctx.guild.id)]["names"]: del db[str(ctx.guild.id)]["names"][tuple[0]]
 
 #%cb check
 @bot.command(name="check")
@@ -367,8 +379,10 @@ async def _top(ctx, count: str):
   if await countercheck(ctx, count) == False:
     return
 
-  n = min(len(db[str(ctx.guild.id)]["counts"][count]), 5)
-  if n < 5: footnote = "_Hay menos de 5 usuarios con puntaje, por lo que la lista muestra a todos los usuarios._\n\n"
+  length = len(db[str(ctx.guild.id)]["counts"][count])
+  n = min(length, 5)
+  if length < 5:
+    footnote = "_Hay menos de 5 usuarios con puntaje, por lo que la lista muestra a todos los usuarios._\n\n"
   else: footnote = ""
 
   await ctx.send(footnote + "🏆 **TOP " + str(n) + " CON MÁS " + count.upper() + " PUNTOS DEL SERVER** 🏆\n\n" + first(ctx, count, n))
@@ -380,8 +394,10 @@ async def _all(ctx, count: str):
   if await countercheck(ctx, count) == False:
     return
 
-  n = min(len(db[str(ctx.guild.id)]["counts"][count]), 50)
-  if n > 50: footnote = "_Hay más de 50 usuarios con puntaje, por lo que la lista solo muestra a los primeros 50._\n\n"
+  length = len(db[str(ctx.guild.id)]["counts"][count])
+  n = min(length, 50)
+  if length > 50:
+    footnote = "_Hay " + str(length) + " usuarios con puntaje, por lo que la lista solo muestra a los primeros 50._\n\n"
   else: footnote = ""
 
   all_embed = discord.Embed(title="📢 TODOS LOS USUARIOS CON " + count.upper() + " PUNTOS DEL SERVER 📢", description=footnote + first(ctx, count, n), color=0xff0000)

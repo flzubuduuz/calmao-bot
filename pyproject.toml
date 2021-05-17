@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "calmao-bot"
-version = "3.1"
+version = "3.2"
 description = "un bot para gente calmada"
 authors = ["flzubuduuz"]
 
